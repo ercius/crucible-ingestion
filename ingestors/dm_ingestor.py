@@ -59,7 +59,7 @@ class DigitalMicrographIngestor(CrucibleDatasetIngestor):
         imaging_mode = self.scientific_metadata.get('Microscope Info Imaging Mode', '')
         self.measurement = f"{illumination_mode} {imaging_mode}".strip()
         logger.info(f'{self.measurement=}')
-        self.dataset_name = Path(self.file_to_upload).stem # file name without extension
+        self.dataset_name = Path(self.file_to_upload).name # file name without extension
 
 
     def generate_dm_thumbnail(self, target_size=(200, 200), dpi=100):
