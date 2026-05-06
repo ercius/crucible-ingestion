@@ -20,7 +20,8 @@ for file_path in file_paths:
     assert 'Calibrations Brightness Origin' in ingestor.scientific_metadata
 
     ingestor.get_dataset_metadata()
-    assert ingestor.dataset_name == file_path.stem
+    print(ingestor.dataset_name)
+    assert ingestor.dataset_name == file_path.name
 
     ingestor.get_data_files()
 
