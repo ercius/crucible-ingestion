@@ -110,8 +110,8 @@
   "509a55b43ade06047028945246ef769c4ff69b4aab58391569d2e6a177ae223b": {
     "dsid": "0tjn7m45qxzqk000gp2c4m4mag",
     "file": "autobot_spinrun_output_example.yaml",
-    "ingestor": "SpinRunIngestor",
-    "schema": "SpinRunIngestor_509a55.json"
+    "ingestor": "SpinRunIngestor_10kLegacy",
+    "schema": "SpinRunIngestor_10kLegacy_509a55.json"
   },
   "5889c8214fa9ca72e555752b5b4a60665da518c48f8c2404b6b64b66e195cf29": {
     "dsid": "xxx",

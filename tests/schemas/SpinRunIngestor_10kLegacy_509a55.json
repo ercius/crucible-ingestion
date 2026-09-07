@@ -2626,7 +2626,7 @@
       "type": "object"
     },
     "ingestion_class": {
-      "const": "SpinRunIngestor",
+      "const": "SpinRunIngestor_10kLegacy",
       "type": "string"
     },
     "keywords": {

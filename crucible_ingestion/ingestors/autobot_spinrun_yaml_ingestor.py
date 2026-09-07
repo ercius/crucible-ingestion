@@ -9,7 +9,7 @@ from ..client import get_client
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-class SpinRunIngestor(CrucibleDatasetIngestor):
+class SpinRunIngestor_10kLegacy(CrucibleDatasetIngestor):
 
     def is_file_supported(self):
         # currently expects yaml file

@@ -504,6 +504,152 @@ class SpinbotPhotoRunIngestor(SpinBotIngestor):
     supported_measurements: ClassVar[list[str]] = ['photo_run']
 
 
+def _to_native(v):
+    """Convert an h5py attribute value (numpy scalar/array) to a plain, JSON-serializable type."""
+    if isinstance(v, np.ndarray):
+        return v.tolist()
+    if isinstance(v, np.generic):
+        return v.item()
+    return v
+
+
+class SpinbotSpinRunIngestor(ScopeFoundryH5Ingestor):
+    """Parses the SpinBot spin_run h5 file directly (replaces the yaml-based
+    SpinRunIngestor_10kLegacy, which parsed the run metadata yaml). The separate
+    deposition log yaml is unrelated and, as before, rides along unparsed since
+    it carries no measurement/instrument_name tags.
+
+    Parent dataset carries the full h5 tree and links only to the TRAY (batch)
+    samples. Each thin film sample gets its own child dataset, linked only to
+    that sample, carrying just that sample's own metadata — same parent/child
+    split used by NirvanaMultiPosLineScanIngestor.
+    """
+
+    supported_measurements: ClassVar[list[str]] = ['spin_run']
+    creation_location: ClassVar[str] = '67-4203'
+
+    _SAMPLES_PATH = 'measurement/spin_run/samples'
+
+    def get_dataset_metadata(self):
+        ScopeFoundryH5Ingestor.get_dataset_metadata(self)
+
+        # spin_run's own run_id (assigned when the run starts) is the meaningful
+        # identifier here, so it replaces ScopeFoundry's generic app-session
+        self.unique_id = self.scientific_metadata['measurement']['spin_run']['settings']['run_id']
+        self.parse_dataset_name()
+
+        default_tags_value = "list,tags,separated,by,commas (optional)"
+        default_session_value = "(optional)"
+
+        try:
+            scope_foundry_tags = self.scientific_metadata['hardware']['mf_crucible_spinbot']['settings']['tags'].strip()
+            scope_foundry_session = self.scientific_metadata['hardware']['mf_crucible_spinbot']['settings']['session_name'].strip()
+        except Exception:
+            logger.warning("no mf-crucible settings found for tags or session_name")
+            scope_foundry_tags = default_tags_value
+            scope_foundry_session = default_session_value
+
+        if scope_foundry_tags != default_tags_value:
+            self.keywords += [x.strip() for x in scope_foundry_tags.split(",")]
+
+        if scope_foundry_session != default_session_value:
+            self.session_name = scope_foundry_session
+            self.keywords += [self.session_name]
+
+    def parse_orcid(self):
+        if self.owner_orcid:
+            return
+        self.owner_orcid = check_orcid_entry(self.scientific_metadata['hardware']['mf_crucible_spinbot']['settings']['orcid'])
+        return
+
+    def parse_project_id(self):
+        if self.project_id:
+            return
+        self.project_id = self.scientific_metadata['hardware']['mf_crucible_spinbot']['settings']['proposal'].split(" ")[0]
+        return
+
+    def parse_measurement(self):
+        self.measurement = 'spin_run'
+
+    def parse_dataset_name(self):
+        self.dataset_name = f"Spin Run - {self.unique_id[:13]}"
+
+    def parse_data_type(self):
+        self.data_type = 'Thin Film Deposition Run'
+
+    def parse_samples(self):
+        trays_seen = set()
+        for tf_key in self.h5file[self._SAMPLES_PATH]:
+            attrs = self.h5file[self._SAMPLES_PATH][tf_key].attrs
+            tray_id = str(attrs['batch_id'])
+            tray_name = str(attrs['batch_name'])
+            sample_id = str(attrs['sample_id'])
+            sample_name = str(attrs['sample_name'])
+
+            # Tray (batch) — added once, linked to the parent dataset
+            if tray_id not in trays_seen and _is_mfid(tray_id):
+                trays_seen.add(tray_id)
+                self.samples.append({
+                    "unique_id": tray_id,
+                    "sample_name": tray_name,
+                    "sample_type": "spinbot tray",
+                    "owner_orcid": self.owner_orcid,
+                    "project_id": self.project_id,
+                    "link_to_dataset": True,
+                })
+
+            # Thin film — not linked to parent dataset (linked at child dataset level)
+            if not _is_mfid(sample_id):
+                logger.info(f"skipping sample {tf_key}: invalid MFID {sample_id!r}")
+                continue
+
+            parent_ids = []
+            if _is_mfid(tray_id):
+                parent_ids.append(tray_id)
+            precursor_mfid = str(attrs.get('precursor_mfid', ''))
+            if _is_mfid(precursor_mfid):
+                parent_ids.append(precursor_mfid)
+
+            self.samples.append({
+                "unique_id": sample_id,
+                "sample_name": sample_name,
+                "sample_type": "thin film",
+                "owner_orcid": self.owner_orcid,
+                "project_id": self.project_id,
+                "parent_ids": parent_ids,
+                "link_to_dataset": False,
+            })
+        return
+
+    def parse_children(self):
+        self.children = []
+        for tf_key in self.h5file[self._SAMPLES_PATH]:
+            attrs = self.h5file[self._SAMPLES_PATH][tf_key].attrs
+            sample_id = str(attrs['sample_id'])
+            sample_name = str(attrs['sample_name'])
+
+            if not _is_mfid(sample_id):
+                continue
+
+            child_ds = Dataset(
+                measurement='spin_run_tf',
+                project_id=self.project_id,
+                owner_orcid=self.owner_orcid,
+                dataset_name=f"Spin Run for {sample_name} - {self.unique_id[:13]}",
+                data_format=self.data_format,
+                instrument_name=self.instrument_name,
+                timestamp=self.timestamp,
+            ).model_dump()
+            child_md = {k: _to_native(v) for k, v in attrs.items()}
+            self.children.append({
+                "dataset": child_ds,
+                "scientific_metadata": child_md,
+                "parent_id": self.unique_id,
+                "sample_links": [sample_id],
+            })
+        return
+
+
 class BioGlowIngestor(ScopeFoundryH5Ingestor):
 
     def is_file_supported(self):
@@ -1081,9 +1227,6 @@ class NirvanaMultiPosSpecRunIngestor(ScopeFoundryH5Ingestor):
             self.session_name = scope_foundry_session
             self.keywords += [self.session_name]
 
-    def parse_measurement(self):
-        self.measurement = 'Nirvana_SpecRun'
-
     def parse_orcid(self):
         if self.owner_orcid:
             return
@@ -1173,10 +1316,10 @@ class NirvanaMultiPosSpecRunIngestor(ScopeFoundryH5Ingestor):
                 })
 
             child_ds = Dataset(
-                measurement=self.measurement,
+                measurement=f"{self.measurement}_tf",
                 project_id=self.project_id,
                 owner_orcid=self.owner_orcid,
-                dataset_name=f"Child Nirvana SpecRun for {sample_name}",
+                dataset_name=f"Nirvana SpecRun for {sample_name}",
                 data_format=self.data_format,
                 instrument_name=self.instrument_name,
                 timestamp=self.timestamp,

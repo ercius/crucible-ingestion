@@ -19,6 +19,7 @@ from .scope_foundry_ingestors import ( SimpleTiledImageScopeFoundryH5Ingestor,
                                                 SpinbotSpecRunIngestor,
                                                 SpinbotCameraCaptureIngestor,
                                                 SpinbotPhotoRunIngestor,
+                                                SpinbotSpinRunIngestor,
                                                 NirvanaMultiPosLineScanIngestor,
                                                 NirvanaMultiPosSpecRunIngestor,
                                                 ScopeFoundryH5Ingestor)
@@ -37,7 +38,7 @@ from .jupiter_afm_ingestor import AFMIngestor
 from .czi_ingestor import CziIngestor
 from .ptychography_h5_ingestor import PtychographyH5Ingestor
 from .h5_ingestor import H5Ingestor
-from .autobot_spinrun_ingestor import SpinRunIngestor
+from .autobot_spinrun_yaml_ingestor import SpinRunIngestor_10kLegacy
 from .inorganic_xrd_ingestor import InorganicXRDIngestor
 
 
@@ -65,8 +66,9 @@ ingestor_list = [AFMIngestor,
                 CLHyperspecIngestor, 
                 SpinbotSpecLineIngestor,
                 SpinbotCameraCaptureIngestor, 
-                SpinbotPhotoRunIngestor, 
-                SpinRunIngestor,
+                SpinbotPhotoRunIngestor,
+                SpinbotSpinRunIngestor,
+                SpinRunIngestor_10kLegacy,
                 InorganicXRDIngestor,
                 InSituPlIngestor,
                 CziIngestor,
