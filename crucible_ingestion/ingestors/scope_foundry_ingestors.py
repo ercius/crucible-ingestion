@@ -504,15 +504,6 @@ class SpinbotPhotoRunIngestor(SpinBotIngestor):
     supported_measurements: ClassVar[list[str]] = ['photo_run']
 
 
-def _to_native(v):
-    """Convert an h5py attribute value (numpy scalar/array) to a plain, JSON-serializable type."""
-    if isinstance(v, np.ndarray):
-        return v.tolist()
-    if isinstance(v, np.generic):
-        return v.item()
-    return v
-
-
 class SpinbotSpinRunIngestor(ScopeFoundryH5Ingestor):
     """Parses the SpinBot spin_run h5 file directly (replaces the yaml-based
     SpinRunIngestor_10kLegacy, which parsed the run metadata yaml). The separate
@@ -529,6 +520,15 @@ class SpinbotSpinRunIngestor(ScopeFoundryH5Ingestor):
     creation_location: ClassVar[str] = '67-4203'
 
     _SAMPLES_PATH = 'measurement/spin_run/samples'
+
+    @staticmethod
+    def _to_native(v):
+        """Convert an h5py attribute value (numpy scalar/array) to a plain, JSON-serializable type."""
+        if isinstance(v, np.ndarray):
+            return v.tolist()
+        if isinstance(v, np.generic):
+            return v.item()
+        return v
 
     def get_dataset_metadata(self):
         ScopeFoundryH5Ingestor.get_dataset_metadata(self)
@@ -640,7 +640,7 @@ class SpinbotSpinRunIngestor(ScopeFoundryH5Ingestor):
                 instrument_name=self.instrument_name,
                 timestamp=self.timestamp,
             ).model_dump()
-            child_md = {k: _to_native(v) for k, v in attrs.items()}
+            child_md = {k: self._to_native(v) for k, v in attrs.items()}
             self.children.append({
                 "dataset": child_ds,
                 "scientific_metadata": child_md,
