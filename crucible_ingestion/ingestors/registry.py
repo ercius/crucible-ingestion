@@ -1,4 +1,5 @@
 import logging
+
 from .scope_foundry_ingestors import ( SimpleTiledImageScopeFoundryH5Ingestor,
                                                 BioGlowIngestor,
                                                 QSpleemSVRampIngestor,
@@ -34,6 +35,7 @@ from .ser_ingestor import SerIngestor
 from .bcf_ingestor import BcfIngestor
 from .emd_ingestor import BerkeleyEmdIngestor
 from .emd_velox_ingestor import VeloxEmdIngestor
+from .mrc_ingestor import MrcIngestor
 from .jupiter_afm_ingestor import AFMIngestor
 from .czi_ingestor import CziIngestor
 from .ptychography_h5_ingestor import PtychographyH5Ingestor
@@ -78,6 +80,7 @@ ingestor_list = [AFMIngestor,
                 BcfIngestor,
                 BerkeleyEmdIngestor,
                 VeloxEmdIngestor,
+                MrcIngestor,
                 SpinbotSpecRunIngestor,
                 ImageIngestor,
                 TifIngestor,
