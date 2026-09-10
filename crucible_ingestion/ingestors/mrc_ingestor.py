@@ -5,6 +5,7 @@ from PIL import Image
 import ncempy.io as nio
 import matplotlib.pyplot as plt
 import logging
+import numpy as np
 
 from .crucible_ingestor import CrucibleDatasetIngestor
 
@@ -28,7 +29,11 @@ class MrcIngestor(CrucibleDatasetIngestor):
     
     def get_scientific_metadata(self):
         with nio.mrc.fileMRC(self.file_to_upload) as mrc1:
-            self.scientific_metadata.update(mrc1.getMetadata())
+            md = mrc1.getMetadata()
+            for key, value in md.items():
+                if isinstance(value, np.ndarray) and not value.flags.c_contiguous:
+                    md[key] = list(value)
+            self.scientific_metadata.update(md)
         logger.info(f'Got metadata from MRC: {self.scientific_metadata=}')
 
         file_path = Path(self.file_to_upload)
@@ -58,7 +63,7 @@ class MrcIngestor(CrucibleDatasetIngestor):
             self.scientific_metadata.update(pp2)
 
     def parse_measurement(self):
-        self.measurement = self.scientific_metadata.get('Mode []')
+        self.measurement = 'tomography'
         logger.info(f'{self.measurement=}')
 
     def get_dataset_metadata(self):
