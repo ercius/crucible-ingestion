@@ -63,7 +63,11 @@ class MrcIngestor(CrucibleDatasetIngestor):
             self.scientific_metadata.update(pp2)
 
     def parse_measurement(self):
-        self.measurement = 'tomography'
+        # Test for metadata that is indicative of a tilt series from FEI tomo software.
+        if self.scientific_metadata.get('axisOrientations') is not None and self.scientific_metadata.get('axisOrientations') is not None:
+            self.measurement = 'tomography'
+        else:
+            self.measurement = None
         logger.info(f'{self.measurement=}')
 
     def get_dataset_metadata(self):
