@@ -42,8 +42,12 @@ class MrcIngestor(CrucibleDatasetIngestor):
         # Read FEI parameters from .txt file if it exists
         FEIparameters = file_path.with_suffix('.txt')
         if FEIparameters.exists():
-            with open(FEIparameters, 'r') as f2:
-                lines = f2.readlines()
+            try:
+                with open(FEIparameters, 'r', encoding='utf-8-sig') as f2:
+                    lines = f2.readlines()
+            except UnicodeDecodeError:
+                with open(FEIparameters, 'r', encoding='cp1252') as f2:
+                    lines = f2.readlines()
             pp1 = list([ii[18:].strip().split(':')] for ii in lines[3:-1])
             pp2 = {}
             for ll in pp1:
