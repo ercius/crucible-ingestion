@@ -74,10 +74,13 @@ that dataset.
 
 ## Using it from Python
 
+This requires an dataset id. Use the mfid package.
+
 ```python
 from crucible_ingestion import parse, push_packet
+from mfid import mfid
 
-packet = parse(path_to_file, dsid)
+packet = parse(path_to_file, dsid=mfid()[0])
 if packet is not None:
     # inspect packet.dataset_fields, packet.scientific_metadata,
     # packet.keywords, packet.samples, packet.children, packet.thumbnails
