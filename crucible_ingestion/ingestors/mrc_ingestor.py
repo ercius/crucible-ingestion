@@ -99,7 +99,7 @@ class MrcIngestor(CrucibleDatasetIngestor):
         buf = None
         try:
             with nio.mrc.fileMRC(self.file_to_upload) as mrc1:
-                if mrc1.dataSize.ndim ==3:
+                if mrc1.dataSize.shape[0] ==3:
                     image_array = mrc1.getSlice(mrc1.dataSize[0] // 2)  # Get the middle slice for 3D data, or the only slice for 2D data
                 else:
                     image_array = mrc1.getSlice(0)  # Get the first slice for 2D data
