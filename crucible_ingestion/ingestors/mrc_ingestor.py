@@ -95,7 +95,9 @@ class MrcIngestor(CrucibleDatasetIngestor):
 
         fig_size = (target_size[0] / dpi, target_size[1] / dpi) # inches
        
-        try:            
+        fg = None
+        buf = None
+        try:
             with nio.mrc.fileMRC(self.file_to_upload) as mrc1:
                 image_array = mrc1.getSlice(mrc1.dataSize[0] // 2)  # Get the middle slice for 3D data, or the only slice for 2D data
             
@@ -103,21 +105,30 @@ class MrcIngestor(CrucibleDatasetIngestor):
                 raise ValueError("No data found in MRC file.")
 
             fg, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
-            ax.plot(image_array)
+            ax.imshow(image_array, cmap='gray')
+            ax.axis('off')
+            fg.tight_layout(pad=0.05)
 
-            # Convert to PIL Image and store in self.thumbnails
+            # Decode the rendered image, then enforce the requested resolution.
             buf = io.BytesIO()
             fg.savefig(buf, bbox_inches='tight', pad_inches=0.05, dpi=dpi)
-            im = Image.open(buf)
-            plt.close(fg)
+            buf.seek(0)
+            with Image.open(buf) as rendered_image:
+                im = rendered_image.resize(target_size, Image.Resampling.LANCZOS)
             return im
         except Exception as e:
-            print(f"Failed to generate thumbnail: {e}")
+            logger.exception("Failed to generate thumbnail: %s", e)
+            return None
+        finally:
+            if buf is not None:
+                buf.close()
+            if fg is not None:
+                plt.close(fg)
 
     def get_thumbnails(self):
         try:
             thumbnail = self.generate_thumbnail()
             if thumbnail:
-                self.add_thumbnail(thumbnail, "EMD_Thumbnail")
+                self.add_thumbnail(thumbnail, "MRC_Thumbnail")
         except Exception as e:
-            print(f"Failed to extract thumbnail: {e}")
+            logger.exception("Failed to extract thumbnail: %s", e)
